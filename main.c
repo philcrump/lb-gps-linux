@@ -1,12 +1,8 @@
 /* Linux */
-#include <linux/types.h>
-#include <linux/input.h>
 #include <linux/hidraw.h>
 
 /* Unix */
 #include <sys/ioctl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
 
@@ -16,12 +12,11 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <stdint.h>
-#include <getopt.h>
 #include <stdbool.h>
 #include <time.h>
+#include <libudev.h>
 
 //Leo GPS Clock
-//#include "GPSSettings.h"
 #define VID_LB_USB 0x1dd2
 #define PID_DUAL_GPS_CLOCK 0x2210
 #define PID_MINI_GPS_CLOCK 0x2211
@@ -29,7 +24,34 @@
 #define _STRINGIFY(x) #x
 #define STR(x) _STRINGIFY(x)
 
-#include <libudev.h>
+#define CMDLINE_RESET                "0"
+#define CMDLINE_BRIGHT               "1"
+#define CMDLINE_DIM                  "2"
+#define CMDLINE_UNDERSCORE           "3"
+#define CMDLINE_BLINK                "4"
+#define CMDLINE_REVERSE              "5"
+#define CMDLINE_HIDDEN               "6"
+
+#define CMDLINE_TEXT_BLACK            "30"
+#define CMDLINE_TEXT_RED              "31"
+#define CMDLINE_TEXT_GREEN            "32"
+#define CMDLINE_TEXT_YELLOW           "33"
+#define CMDLINE_TEXT_BLUE             "34"
+#define CMDLINE_TEXT_MAGENTA          "35"
+#define CMDLINE_TEXT_CYAN             "36"
+#define CMDLINE_TEXT_WHITE            "37"
+
+#define CMDLINE_BG_BLACK            "40"
+#define CMDLINE_BG_RED              "41"
+#define CMDLINE_BG_GREEN            "42"
+#define CMDLINE_BG_YELLOW           "43"
+#define CMDLINE_BG_BLUE             "44"
+#define CMDLINE_BG_MAGENTA          "45"
+#define CMDLINE_BG_CYAN             "46"
+#define CMDLINE_BG_WHITE            "47"
+
+#define CMDLINE_FMT(X) "\x1b["X"m"
+#define CMDLINE_FMT_RESET  CMDLINE_FMT(CMDLINE_RESET)
 
 typedef struct {
   uint8_t out1Enabled;// = 0
@@ -68,8 +90,6 @@ typedef struct {
   #define HIDIOCSFEATURE(len)    _IOC(_IOC_WRITE|_IOC_READ, 'H', 0x06, len)
   #define HIDIOCGFEATURE(len)    _IOC(_IOC_WRITE|_IOC_READ, 'H', 0x07, len)
 #endif
-
-#define HIDIOCGRAWNAME(len)     _IOC(_IOC_READ, 'H', 0x04, len)
 
 void sleep_ms(uint32_t _duration)
 {
@@ -128,7 +148,7 @@ void open_lbgpsdo_device(int *fd)
       )
     )
     {
-      printf("Found: %s: %s %s, serial #%s\n",
+      printf(" - Found: %s: %s %s, serial #%s\n",
         udev_device_get_devnode(dev),
         udev_device_get_sysattr_value(devusb,"manufacturer"),
         udev_device_get_sysattr_value(devusb,"product"),
@@ -155,76 +175,15 @@ void open_lbgpsdo_device(int *fd)
   *fd = -1;       
 }
 
-void lbgpsdo_print_info(int fd)
-{
-  if(fd < 0) 
-  {
-    perror("lbgpsdo_info: Invalid file descriptor.");
-    return;
-  }
-
-  struct hidraw_devinfo info;
-
-  //Device connected, setup report structs
-  memset(&info, 0x0, sizeof(info));
-
-  // Get Raw Info  
-  if (ioctl(fd, HIDIOCGRAWINFO, &info) < 0) 
-  {
-    perror("HIDIOCGRAWINFO");
-  } 
-  else
-  {
-    printf("Device Info:\n");
-    printf("\tvendor: 0x%04hx\n", info.vendor);
-    printf("\tproduct: 0x%04hx\n", info.product);
-    if (info.vendor != VID_LB_USB || (info.product != PID_DUAL_GPS_CLOCK && info.product != PID_MINI_GPS_CLOCK))
-    {
-      perror("Not a valid GPS Clock Device");
-      return;//Device not valid
-    }
-  }
-}
-
-void lbgpsdo_print_name(int fd)
-{
-  uint8_t buf[60];
-
-  if(fd < 0) 
-  {
-    perror("lbgpsdo_name: Invalid file descriptor.");
-    return;
-  }
-
-  /* Get Raw Name */
-  if (ioctl(fd, HIDIOCGRAWNAME(256), buf) < 0)
-  {
-    perror("HIDIOCGRAWNAME");
-  }
-  else
-  {
-    printf("Raw Name: %s\n", buf);
-  }
-}
-
 void lbgpsdo_get_config(int fd, lbgpsdo_config_t *lbgpsdo_config)
 {
-  int res;
   uint8_t buf[60];
+  
+  buf[0] = 0x9; /* Report Number 0x9 */
 
-  if(fd < 0) 
+  if (ioctl(fd, HIDIOCGFEATURE(256), buf) < 0)
   {
-    perror("lbgpsdo_name: Invalid file descriptor.");
-    return;
-  }
-
-  /* Get Feature */
-  buf[0] = 0x9; /* Report Number */
-
-  res = ioctl(fd, HIDIOCGFEATURE(256), buf);
-  if (res < 0)
-  {
-    perror("HIDIOCGFEATURE");
+    perror("lbgpsdo_get_config");
     return;
   }
 
@@ -250,11 +209,12 @@ void lbgpsdo_get_config(int fd, lbgpsdo_config_t *lbgpsdo_config)
 void lbgpsdo_get_status(int fd, lbgpsdo_status_t *lbgpsdo_status)
 {
   uint8_t buf[60];
-
   uint32_t timeout = 0;
+  int32_t report_len;
+
   while (timeout < 5000)
   {
-    int report_len = read(fd, buf, sizeof(buf));
+    report_len = read(fd, buf, sizeof(buf));
     if (report_len < 1) 
     {
       sleep_ms(1);
@@ -268,18 +228,22 @@ void lbgpsdo_get_status(int fd, lbgpsdo_status_t *lbgpsdo_status)
       return;
     }
   }
+  printf("lbgpsdo_get_status: Timeout Error\n");
 }
 
 int main(int argc, char **argv)
 {
   (void) argc;
   (void) argv;
-  printf("Leo Bodnar GPS Clock Status\n");
+  printf(CMDLINE_FMT(CMDLINE_BRIGHT)"Leo Bodnar GPS Clock Status"CMDLINE_FMT_RESET"\n");
   printf(" - modified by Phil Crump <phil@philcrump.co.uk>\n");
+  printf(" - Build: %s (%s)\n",
+    BUILD_VERSION, BUILD_DATE
+  );
   
   int fd;
 
-  printf("Searching for device..\n");
+  printf(CMDLINE_FMT(CMDLINE_BRIGHT)"Device Scan"CMDLINE_FMT_RESET"\n");
   open_lbgpsdo_device(&fd);
   if(fd < 0) 
   {
@@ -287,7 +251,7 @@ int main(int argc, char **argv)
     return 1;
   }
 
-  printf("## Configuration\n");
+  printf(CMDLINE_FMT(CMDLINE_BRIGHT)"Configuration"CMDLINE_FMT_RESET"\n");
   lbgpsdo_config_t lbgpsdo_config;
   lbgpsdo_get_config(fd, &lbgpsdo_config);
 
@@ -302,20 +266,20 @@ int main(int argc, char **argv)
   printf("Clock Out 1   = %f Hz\n", lbgpsdo_config.Out1);
   printf("Clock Out 2   = %f Hz\n", lbgpsdo_config.Out2);
 
-  printf("## Status\n");
+  printf(CMDLINE_FMT(CMDLINE_BRIGHT)"Status"CMDLINE_FMT_RESET"\n");
   lbgpsdo_status_t lbgpsdo_status;
   lbgpsdo_get_status(fd, &lbgpsdo_status);
 
-  printf("Loss of Signal Count: %i\n", lbgpsdo_status.loss_count);
+  printf(" - Loss of Signal Count: %i\n", lbgpsdo_status.loss_count);
   if(lbgpsdo_status.gps_locked) {
-      printf("Sat Status: Locked\n");
+      printf(" - GPS Status: "CMDLINE_FMT(CMDLINE_TEXT_GREEN)"Locked"CMDLINE_FMT_RESET"\n");
   } else {
-      printf("Sat Status: Unlocked\n");
+      printf(" - GPS Status: "CMDLINE_FMT(CMDLINE_TEXT_RED)"Unlocked"CMDLINE_FMT_RESET"\n");
   }
   if(lbgpsdo_status.pll_locked) {
-      printf("PLL Status: Locked\n");
+      printf(" - PLL Status: "CMDLINE_FMT(CMDLINE_TEXT_GREEN)"Locked"CMDLINE_FMT_RESET"\n");
   } else {
-      printf("PLL Status: Unlocked\n");
+      printf(" - PLL Status: "CMDLINE_FMT(CMDLINE_TEXT_RED)"Unlocked"CMDLINE_FMT_RESET"\n");
   }
 
   close(fd);
