@@ -1,0 +1,15 @@
+## Travis CI Configuration file
+
+# Use barebones Travis image
+language: c
+
+# Install dependencies
+install: libudev-dev
+
+# Only grab latest git commit (no need for history)
+git:
+  depth: 1
+
+# Command to run tests
+script:
+  - cd examples/cli-status/ && make

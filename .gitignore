@@ -1,8 +1,2 @@
 .DS_Store
-.vscode/
-lbgpsdo
-lb-gps
-lb-gps-linux
-lb-gps-linux-status
-lb-gps-status
-log
+examples/cli-status/lbgpsdo

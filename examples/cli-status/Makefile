@@ -18,12 +18,15 @@ BIN = lbgpsdo
 
 SRCDIR = .
 
-SRC = $(SRCDIR)/main.c
+LIBLBGPSDODIR = ../..
+
+SRC = $(LIBLBGPSDODIR)/liblbgpsdo.c \
+	$(SRCDIR)/main.c
 
 # ========================================================================================
 # External Libraries
 
-LIBSDIR = 
+LIBSDIR = $(LIBLBGPSDODIR)
 
 LIBS = -ludev
 
@@ -31,7 +34,7 @@ LIBS = -ludev
 # Makerules
 
 all:
-	$(CC) $(COPT) $(CFLAGS) $(SRC) -o $(BIN) $(LIBSDIR) $(LIBS)
+	$(CC) $(COPT) $(CFLAGS) $(SRC) -o $(BIN) -I $(LIBSDIR) $(LIBS)
 
 debug: COPT = -Og -ggdb -fno-omit-frame-pointer -D__DEBUG
 debug: all
