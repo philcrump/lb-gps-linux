@@ -4,7 +4,11 @@
 language: c
 
 # Install dependencies
-install: libudev-dev
+before_install:
+  - sudo apt-get install -y libudev-dev
+addons:
+  apt:
+    update: true
 
 # Only grab latest git commit (no need for history)
 git:
