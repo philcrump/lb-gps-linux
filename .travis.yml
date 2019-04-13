@@ -17,3 +17,4 @@ git:
 # Command to run tests
 script:
   - cd examples/cli-status/ && make
+  - cd examples/cli-config/ && make
