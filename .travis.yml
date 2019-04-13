@@ -15,6 +15,10 @@ git:
   depth: 1
 
 # Command to run tests
+env:
+  - EXAMPLE=cli-status
+  - EXAMPLE=cli-config
+
+# Command to run tests
 script:
-  - cd examples/cli-status/ && make
-  - cd examples/cli-config/ && make
+  - cd $EXAMPLE && make
