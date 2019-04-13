@@ -16,7 +16,7 @@ typedef struct {
 	int fd;
 	uint16_t vid;
 	uint16_t pid;
-	uint32_t serial;
+	char serial[6+1];
 } lbgpsdo_device_t;
 
 typedef struct {
@@ -24,9 +24,6 @@ typedef struct {
   uint8_t out2Enabled;// = 0;
   
   uint8_t driveStrength;// = 0;
-
-  uint8_t reportID;// = 0x0; //Report ID Unused
-  uint8_t reportTag;// = 0x4; //Change clock settings tag
 
   uint32_t GPSFrequency;//  = 0;  // 800Hz - 10 000 000Hz
   uint32_t N31;// = 2 -1;//1,2,4,5...2**21
@@ -52,9 +49,19 @@ typedef struct {
 
 bool lbgpsdo_open_device_auto(lbgpsdo_device_t *lbgpsdo_device);
 
+void lbgpsdo_print_device(lbgpsdo_device_t *lbgpsdo_device);
+
 bool lbgpsdo_get_config(lbgpsdo_device_t *lbgpsdo_device, lbgpsdo_config_t *lbgpsdo_config);
 
+bool lbgpsdo_check_config(lbgpsdo_config_t *lbgpsdo_config);
+
+bool lbgpsdo_set_config(lbgpsdo_device_t *lbgpsdo_device, lbgpsdo_config_t *lbgpsdo_config);
+
+void lbgpsdo_print_config(lbgpsdo_config_t *lbgpsdo_config);
+
 bool lbgpsdo_get_status(lbgpsdo_device_t *lbgpsdo_device, lbgpsdo_status_t *lbgpsdo_status);
+
+void lbgpsdo_print_status(lbgpsdo_status_t *lbgpsdo_status);
 
 void lbgpsdo_close(lbgpsdo_device_t *lbgpsdo_device);
 

@@ -36,7 +36,7 @@ int main(int argc, char **argv)
 {
   (void) argc;
   (void) argv;
-  printf(CMDLINE_FMT(CMDLINE_BRIGHT)"Leo Bodnar GPS Clock Status"CMDLINE_FMT_RESET"\n");
+  printf(CMDLINE_FMT(CMDLINE_BRIGHT)"Leo Bodnar GPS Clock Configuration"CMDLINE_FMT_RESET"\n");
   printf(" - modified by Phil Crump <phil@philcrump.co.uk>\n");
   printf(" - Build: %s (%s)\n",
     BUILD_VERSION, BUILD_DATE
@@ -50,6 +50,8 @@ int main(int argc, char **argv)
     perror("Unable to open device");
     return 1;
   }
+
+  lbgpsdo_print_device(&lbgpsdo_device);
 
   printf(CMDLINE_FMT(CMDLINE_BRIGHT)"Configuration"CMDLINE_FMT_RESET"\n");
 
@@ -71,6 +73,13 @@ int main(int argc, char **argv)
   }
 
   lbgpsdo_print_status(&lbgpsdo_status);
+
+  printf(CMDLINE_FMT(CMDLINE_BRIGHT)"Writing Configuration"CMDLINE_FMT_RESET"\n");
+  if(!lbgpsdo_set_config(&lbgpsdo_device, &lbgpsdo_config))
+  {
+    perror("Failed to write device config");
+    return 1;
+  }
 
   lbgpsdo_close(&lbgpsdo_device);
   return 0;

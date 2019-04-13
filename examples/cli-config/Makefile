@@ -1,5 +1,5 @@
 # ========================================================================================
-# Makefile for lbgpsdo-status
+# Makefile for lbgpsdo-config
 # ========================================================================================
 
 # ========================================================================================
@@ -11,7 +11,7 @@ CFLAGS = -Wall -Wextra -Wpedantic -Werror -std=gnu11 -D_GNU_SOURCE
 CFLAGS += -D BUILD_VERSION="\"$(shell git describe --dirty --always)\""	\
 		-D BUILD_DATE="\"$(shell date '+%Y-%m-%d_%H:%M:%S')\""
 
-BIN = lbgpsdo-status
+BIN = lbgpsdo-config
 
 # ========================================================================================
 # Source files
