@@ -21,4 +21,4 @@ env:
 
 # Command to run tests
 script:
-  - cd $EXAMPLE && make
+  - cd examples/$EXAMPLE && make
